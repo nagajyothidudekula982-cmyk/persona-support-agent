@@ -1,0 +1,14 @@
+Troubleshooting Guide
+
+If application is not working:
+
+1. Clear browser cache
+2. Restart the application
+3. Check internet connectivity
+4. Verify API service status
+5. Try again after 5 minutes
+
+Common API Issues:
+- Timeout errors due to network
+- Invalid request format
+- Server temporarily unavailable

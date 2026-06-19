@@ -1,0 +1,14 @@
+Account Security Policy
+
+Account Lock:
+- Account gets locked after 5 failed login attempts
+- Lock duration: 15 minutes
+
+To unlock account:
+1. Wait for auto-unlock
+OR
+2. Contact support team
+
+Security Notes:
+- Avoid multiple incorrect password attempts
+- Enable two-factor authentication if available

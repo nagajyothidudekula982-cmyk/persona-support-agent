@@ -1,0 +1,6 @@
+Reset password steps:
+1. Go to login page
+2. Click forgot password
+3. Enter registered email
+4. Check inbox and click reset link
+5. Link expires in 10 minutes

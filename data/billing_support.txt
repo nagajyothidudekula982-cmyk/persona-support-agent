@@ -1,0 +1,17 @@
+Billing Support Guide
+
+Common Issues:
+- Payment failure
+- Refund delay
+- Duplicate charge
+
+Refund Policy:
+- Refunds processed in 5–7 business days
+- Only eligible transactions are refunded
+
+If payment fails:
+1. Retry after 24 hours
+2. Check card balance
+3. Verify payment method is active
+
+Invoices can be downloaded from user dashboard.

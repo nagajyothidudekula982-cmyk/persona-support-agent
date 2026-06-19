@@ -1,0 +1,17 @@
+Password Reset Guide
+
+1. Go to login page
+2. Click Forgot Password
+3. Enter email
+4. Check inbox
+5. Reset password within 10 minutes
+
+Troubleshooting Guide
+
+1. Clear cache
+2. Restart app
+3. Check internet
+
+API Authentication Guide
+
+Authorization: Bearer <API_KEY>

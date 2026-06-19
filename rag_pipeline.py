@@ -1,262 +1,99 @@
-import os
-from sentence_transformers import SentenceTransformer
 from datetime import datetime
 import random
-import numpy as np
-
-# ==========================================================
-# Cloud-safe mode toggle
-# ==========================================================
-USE_SIMPLE_MODE = True
-# ==========================================================
-# Load Embedding Model
-# ==========================================================
-print("Loading embedding model...")
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # ==========================================================
 # Knowledge Base
-# (UNCHANGED - your original content preserved)
 # ==========================================================
 DOCUMENTS = [
-    """Password Reset Guide
-Issue:
-User unable to login or forgot password.
-Steps:
-1. Go to Login page.
-2. Click Forgot Password.
-3. Enter registered email.
-4. Check email inbox.
-5. Click password reset link.
-6. Reset link expires in 10 minutes.
-If email not received:
-• Check Spam folder.
-• Verify email address.
-• Wait 2–3 minutes.""",
-
-    """Authentication Guide
-Every API request requires:
-Authorization: Bearer <API_KEY>
-401 Unauthorized → invalid key
-403 Forbidden → permission denied
-Best practices:
-• Store keys securely
-• Rotate keys regularly""",
-
-    """Billing Guide
-• Duplicate charge
-• Refund delay
-Refunds processed in 5–7 business days.
-Invoices available in dashboard.""",
-
-    """Troubleshooting Guide
-1. Restart app
-2. Clear cache
-3. Check internet
-4. Retry after 5 minutes""",
-
-    """Cookie Guide
-Clear cookies from browser settings → Privacy → Clear Data""",
-
-    """Database Integration Guide
-• DB unavailable
-• Wrong credentials
-• Timeout issues
-Check logs first.""",
-
-    """Business SLA Guide
-Billing disputes → 5–7 days
-Critical outages → immediate escalation""",
-
-    """Account Security Guide
-5 failed login attempts → account locked for 15 minutes""",
-
-    """API Error Guide
-400 Bad Request
-401 Unauthorized
-403 Forbidden
-500 Internal Server Error"""
+    "Password Reset Guide: Go to login page and click forgot password.",
+    "API Authentication: Use Bearer token in headers. 401 invalid key, 403 forbidden.",
+    "Billing Guide: Refunds take 5–7 business days.",
+    "Troubleshooting: restart app, clear cache, check internet.",
+    "Account Security: 5 failed logins locks account for 15 minutes.",
+    "API Errors: 400 bad request, 500 server error."
 ]
 
 # ==========================================================
-# Build Pipeline (Cloud + Local Safe)
+# Simple keyword retrieval (NO ML, NO CRASH)
 # ==========================================================
-def build_pipeline():
+def retrieve_documents(query, top_k=3):
 
-    print("Building pipeline...")
+    query = query.lower()
+    scored = []
 
-    # -----------------------------
-    # STREAMLIT CLOUD MODE (NO CHROMADB)
-    # -----------------------------
-    if USE_SIMPLE_MODE:
-        print("Running in Cloud Safe Mode (no ChromaDB)")
+    for doc in DOCUMENTS:
+        score = sum(1 for word in query.split() if word in doc.lower())
+        scored.append((score, doc))
 
-        embeddings = embedding_model.encode(DOCUMENTS)
+    scored.sort(reverse=True, key=lambda x: x[0])
 
-        return {
-            "docs": DOCUMENTS,
-            "embeddings": embeddings
-        }
-
-    # -----------------------------
-    # LOCAL MODE (ChromaDB)
-    # -----------------------------
-    import chromadb
-
-    client = chromadb.PersistentClient(path="./chroma_db")
-
-    try:
-        client.delete_collection("support_docs")
-    except:
-        pass
-
-    collection = client.create_collection("support_docs")
-
-    print(f"Documents Loaded: {len(DOCUMENTS)}")
-
-    for i, doc in enumerate(DOCUMENTS):
-
-        embedding = embedding_model.encode(doc).tolist()
-
-        collection.add(
-            ids=[str(i)],
-            documents=[doc],
-            embeddings=[embedding]
-        )
-
-    print("Vector DB Created")
-
-    return collection
+    return [doc for _, doc in scored[:top_k]]
 
 # ==========================================================
-# Retrieve Documents (Hybrid Mode)
-# ==========================================================
-def retrieve_documents(query, db, top_k=3):
-
-    query_embedding = embedding_model.encode(query)
-
-    # -----------------------------
-    # CLOUD MODE (NumPy similarity search)
-    # -----------------------------
-    if USE_SIMPLE_MODE:
-
-        scores = np.dot(db["embeddings"], query_embedding)
-
-        top_k_idx = np.argsort(scores)[::-1][:top_k]
-
-        return [db["docs"][i] for i in top_k_idx]
-
-    # -----------------------------
-    # LOCAL MODE (ChromaDB)
-    # -----------------------------
-    results = db.query(
-        query_embeddings=[query_embedding.tolist()],
-        n_results=top_k
-    )
-
-    return results["documents"][0]
-
-# ==========================================================
-# Persona Detection
+# Persona detection
 # ==========================================================
 def detect_persona(query):
 
     q = query.lower()
 
-    if any(word in q for word in ["api", "database", "authentication", "401", "403", "500", "server"]):
+    if any(x in q for x in ["api", "server", "error", "authentication"]):
         return "Technical Expert"
 
-    elif any(word in q for word in ["business", "sla", "impact", "downtime"]):
+    if any(x in q for x in ["billing", "refund", "payment"]):
         return "Business Executive"
 
-    else:
-        return "General User"
-
-# ==========================================================
-# Confidence Score
-# ==========================================================
-def calculate_confidence(docs, query):
-
-    score = 0
-    query_words = query.lower().split()
-
-    for doc in docs:
-        doc = doc.lower()
-        for word in query_words:
-            if word in doc:
-                score += 1
-
-    return min(score, 10)
+    return "General User"
 
 # ==========================================================
 # Generate Answer
 # ==========================================================
 def generate_answer(query, persona=None, db=None):
 
-    if db is None:
-        db = build_pipeline()
-
     if not persona:
         persona = detect_persona(query)
 
-    docs = retrieve_documents(query, db)
+    docs = retrieve_documents(query)
 
     context = "\n\n".join(docs)
 
-    confidence = calculate_confidence(docs, query)
-
-    escalation_keywords = [
-        "refund", "fraud", "legal", "complaint",
-        "escalate", "payment failed"
-    ]
+    confidence = len([d for d in docs if any(w in d.lower() for w in query.lower().split())])
 
     escalated = (
-        confidence < 2 or
-        any(word in query.lower() for word in escalation_keywords)
+        confidence < 1 or
+        any(w in query.lower() for w in ["fraud", "legal", "complaint", "refund"])
     )
 
-    # -----------------------------
-    # Persona-based response
-    # -----------------------------
     if persona == "General User":
         response = f"""
-I found helpful information:
+Help Information:
 
 {context}
 
 Steps:
-1. Follow the instructions above
+1. Follow instructions above
 2. Contact support if needed
 """
 
     elif persona == "Technical Expert":
         response = f"""
-Technical Details:
+Technical View:
 
 {context}
 
-Actions:
-• Check logs
-• Validate configuration
-• Verify API/authentication
-"""
-
-    elif persona == "Business Executive":
-        response = f"""
-Business Summary:
-
-{context}
-
-Impact:
-• Review SLA
-• Monitor service health
-• Escalate if required
+Check:
+• Logs
+• API keys
+• Server status
 """
 
     else:
-        response = context
+        response = f"""
+Business View:
 
-    status = "ESCALATED" if escalated else "RESOLVED"
+{context}
+
+Review SLA and escalate if needed.
+"""
 
     return {
         "ticket_id": str(random.randint(100000, 999999)),
@@ -266,35 +103,24 @@ Impact:
         "response": response,
         "documents_used": docs,
         "confidence": confidence,
-        "status": status
+        "status": "ESCALATED" if escalated else "RESOLVED"
     }
 
 # ==========================================================
-# Terminal Mode (UNCHANGED)
+# Terminal test
 # ==========================================================
 if __name__ == "__main__":
 
-    db = build_pipeline()
-
-    print("\nPersona Support Agent Ready\n")
+    print("RAG System Running (Safe Mode)")
 
     while True:
-
-        query = input("User: ")
-
-        if query.lower() == "exit":
+        q = input("User: ")
+        if q == "exit":
             break
 
-        persona = detect_persona(query)
+        r = generate_answer(q)
 
-        result = generate_answer(query, persona, db)
-
-        print("\n--------------------------------")
-        print("Persona:", result["persona"])
-        print("Status:", result["status"])
-        print("Confidence:", result["confidence"])
-        print("--------------------------------\n")
-
-        print(result["response"])
-        print("\nTicket ID:", result["ticket_id"])
-        print("--------------------------------\n")
+        print("\n--- RESPONSE ---")
+        print(r["response"])
+        print("STATUS:", r["status"])
+        print("----------------\n")

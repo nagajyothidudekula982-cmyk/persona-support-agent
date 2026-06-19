@@ -1,7 +1,8 @@
-streamlit
-langchain-community
-langchain-text-splitters
-chromadb
-sentence-transformers
-transformers
+streamlit==1.30.0
+chromadb==0.4.22
+sentence-transformers==2.6.1
+transformers==4.38.2
 torch
+numpy
+pandas
+protobuf<5

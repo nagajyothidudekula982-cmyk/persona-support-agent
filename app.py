@@ -2,8 +2,9 @@ import streamlit as st
 from rag_pipeline import build_pipeline, generate_answer
 
 # ==========================================================
-# Page Config
+# Page Configuration
 # ==========================================================
+
 st.set_page_config(
     page_title="Persona Adaptive Support Agent",
     page_icon="🧠",
@@ -11,8 +12,9 @@ st.set_page_config(
 )
 
 # ==========================================================
-# Load DB once (important for Streamlit Cloud)
+# Load Vector Database Once
 # ==========================================================
+
 @st.cache_resource
 def load_db():
     return build_pipeline()
@@ -20,51 +22,155 @@ def load_db():
 db = load_db()
 
 # ==========================================================
-# UI
+# Sidebar
 # ==========================================================
-st.title("🧠 Persona Adaptive Support Agent")
 
-st.write("RAG-based AI system with persona-aware responses and escalation logic")
+st.sidebar.title("🧠 Persona Support Agent")
 
-query = st.text_input("Enter your question")
+st.sidebar.markdown("### Features")
 
-persona = st.selectbox(
-    "Choose Persona",
-    ["General User", "Technical Expert", "Business Executive"]
+st.sidebar.write("""
+✅ Retrieval Augmented Generation (RAG)
+
+✅ ChromaDB Vector Database
+
+✅ Sentence Transformers
+
+✅ Persona Adaptive Responses
+
+✅ Confidence Score
+
+✅ Human Escalation
+""")
+
+st.sidebar.markdown("---")
+
+st.sidebar.info(
+    "Developed using Python, Streamlit, ChromaDB and Sentence Transformers."
 )
 
 # ==========================================================
-# Run
+# Title
 # ==========================================================
-if st.button("Generate Response"):
 
-    if not query:
-        st.warning("Please enter a question")
+st.title("🧠 AI Persona Adaptive Customer Support")
+
+st.caption(
+    "A Retrieval-Augmented (RAG) chatbot that adapts responses based on different customer personas."
+)
+
+st.markdown("---")
+
+# ==========================================================
+# User Input
+# ==========================================================
+
+query = st.text_area(
+    "Enter your question",
+    placeholder="Example: How do I reset my password?"
+)
+
+persona = st.selectbox(
+    "Choose Persona",
+    [
+        "General User",
+        "Technical Expert",
+        "Business Executive"
+    ]
+)
+
+# ==========================================================
+# Generate Response
+# ==========================================================
+
+if st.button("🚀 Generate Response"):
+
+    if query.strip() == "":
+        st.warning("Please enter your question.")
+
     else:
 
-        result = generate_answer(query, persona, db)
+        with st.spinner("Searching the knowledge base..."):
 
-        st.subheader("🤖 Response")
+            result = generate_answer(
+                query=query,
+                persona=persona,
+                db=db
+            )
+
+        st.success("Response generated successfully!")
+
+        st.markdown("---")
+
+        st.subheader("👤 Persona")
+
+        st.info(result["persona"])
+
+        st.markdown("---")
+
+        st.subheader("🤖 AI Response")
+
         st.write(result["response"])
 
-        st.subheader("📊 Confidence")
-        st.progress(min(result["confidence"], 10) / 10)
-        st.write(result["confidence"])
+        st.markdown("---")
 
-        st.subheader("📄 Documents Used")
-        for i, doc in enumerate(result["documents_used"], 1):
-            st.write(f"**Doc {i}:**")
-            st.write(doc)
+        st.subheader("📊 Confidence Score")
 
-        st.subheader("🎫 Ticket Info")
+        confidence = result["confidence"]
+
+        st.progress(min(confidence, 10) / 10)
+
+        if confidence >= 7:
+            st.success(f"High Confidence ({confidence}/10)")
+        elif confidence >= 4:
+            st.warning(f"Medium Confidence ({confidence}/10)")
+        else:
+            st.error(f"Low Confidence ({confidence}/10)")
+
+        st.markdown("---")
+
+        st.subheader("📄 Retrieved Documents")
+
+        for i, doc in enumerate(result["documents_used"], start=1):
+
+            with st.expander(f"Document {i}"):
+
+                st.write(doc)
+
+        st.markdown("---")
+
+        st.subheader("🎫 Ticket Details")
+
         st.json({
+
             "Ticket ID": result["ticket_id"],
+
+            "Issue": result["issue"],
+
             "Persona": result["persona"],
+
+            "Confidence": result["confidence"],
+
             "Status": result["status"],
+
             "Timestamp": result["timestamp"]
+
         })
 
         if result["status"] == "ESCALATED":
-            st.error("🚨 Escalated to human support")
+
+            st.error("🚨 This issue has been escalated to a human support agent.")
+
         else:
-            st.success("✅ Resolved automatically")
+
+            st.success("✅ Issue resolved automatically.")
+
+# ==========================================================
+# Footer
+# ==========================================================
+
+st.markdown("---")
+
+st.caption(
+    "Built using Python • Streamlit • ChromaDB • Sentence Transformers"
+)

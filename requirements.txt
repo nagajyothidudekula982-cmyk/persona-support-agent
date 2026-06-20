@@ -1,5 +1,7 @@
-streamlit==1.36.0
-chromadb==0.4.24
-sentence-transformers==2.7.0
-numpy
-protobuf==4.25.3
+streamlit
+langchain-community
+langchain-text-splitters
+chromadb
+sentence-transformers
+transformers
+torch

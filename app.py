@@ -1,64 +1,70 @@
-import gradio as gr
+import streamlit as st
 from rag_pipeline import build_pipeline, generate_answer
 
 # ==========================================================
-# Load DB (same as Streamlit cache idea)
+# Page Config
 # ==========================================================
-db = build_pipeline()
-
-# ==========================================================
-# Main function (NO LOGIC CHANGE)
-# ==========================================================
-def process(query, persona):
-
-    result = generate_answer(
-        query=query,
-        persona=persona,
-        db=db
-    )
-
-    return (
-        result["response"],
-        result["confidence"],
-        result["status"],
-        result["documents_used"],
-        result["ticket_id"],
-        result["timestamp"],
-        result["persona"]
-    )
-
-# ==========================================================
-# UI (minimal + equivalent to your Streamlit app)
-# ==========================================================
-demo = gr.Interface(
-    fn=process,
-
-    inputs=[
-        gr.Textbox(
-            label="Enter your question",
-            placeholder="Example: How do I reset my password?"
-        ),
-        gr.Dropdown(
-            ["General User", "Technical Expert", "Business Executive"],
-            label="Choose Persona"
-        )
-    ],
-
-    outputs=[
-        gr.Textbox(label="AI Response"),
-        gr.Number(label="Confidence Score"),
-        gr.Textbox(label="Status"),
-        gr.Textbox(label="Documents Used"),
-        gr.Textbox(label="Ticket ID"),
-        gr.Textbox(label="Timestamp"),
-        gr.Textbox(label="Detected Persona")
-    ],
-
-    title="🧠 Persona Adaptive Support Agent",
-    description="RAG system with persona adaptation, confidence scoring, and escalation logic"
+st.set_page_config(
+    page_title="Persona Adaptive Support Agent",
+    page_icon="🧠",
+    layout="centered"
 )
 
 # ==========================================================
-# Launch
+# Load DB once (important for Streamlit Cloud)
 # ==========================================================
-demo.launch()
+@st.cache_resource
+def load_db():
+    return build_pipeline()
+
+db = load_db()
+
+# ==========================================================
+# UI
+# ==========================================================
+st.title("🧠 Persona Adaptive Support Agent")
+
+st.write("RAG-based AI system with persona-aware responses and escalation logic")
+
+query = st.text_input("Enter your question")
+
+persona = st.selectbox(
+    "Choose Persona",
+    ["General User", "Technical Expert", "Business Executive"]
+)
+
+# ==========================================================
+# Run
+# ==========================================================
+if st.button("Generate Response"):
+
+    if not query:
+        st.warning("Please enter a question")
+    else:
+
+        result = generate_answer(query, persona, db)
+
+        st.subheader("🤖 Response")
+        st.write(result["response"])
+
+        st.subheader("📊 Confidence")
+        st.progress(min(result["confidence"], 10) / 10)
+        st.write(result["confidence"])
+
+        st.subheader("📄 Documents Used")
+        for i, doc in enumerate(result["documents_used"], 1):
+            st.write(f"**Doc {i}:**")
+            st.write(doc)
+
+        st.subheader("🎫 Ticket Info")
+        st.json({
+            "Ticket ID": result["ticket_id"],
+            "Persona": result["persona"],
+            "Status": result["status"],
+            "Timestamp": result["timestamp"]
+        })
+
+        if result["status"] == "ESCALATED":
+            st.error("🚨 Escalated to human support")
+        else:
+            st.success("✅ Resolved automatically")

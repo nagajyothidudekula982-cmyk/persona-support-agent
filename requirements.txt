@@ -1,4 +1,5 @@
-streamlit
-sentence-transformers
-chromadb
+streamlit==1.36.0
+chromadb==0.4.24
+sentence-transformers==2.7.0
 numpy
+protobuf==4.25.3

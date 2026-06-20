@@ -1,7 +1,3 @@
-streamlit 
-langchain-community
-langchain-text-splitters
-chromadb
+gradio
 sentence-transformers
-transformers
-torch
+numpy

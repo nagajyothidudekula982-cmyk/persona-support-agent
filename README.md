@@ -1,3 +1,16 @@
+
+
+
+---
+title: Persona Adaptive Support Agent
+emoji: 🧠
+colorFrom: blue
+colorTo: purple
+sdk: gradio
+sdk_version: "4.0.0"
+app_file: app.py
+pinned: false
+---
 # 🧠 Persona Adaptive Customer Support Agent (RAG-Based AI System)
 
 ## 🚀 Overview
